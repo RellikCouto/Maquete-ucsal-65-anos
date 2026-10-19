@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ArboSalva – Mapa de calor e zonas críticas</title>
+<style>
+:root{--bg:#e9efe9;--sf:#fff;--tx:#1d2a24;--mu:#5a6b62;--ln:#c5d2c9;--g:#2f7d4f;--gd:#1c4d33;--hot:#d9482b;--warn:#e9a23b;--blue:#2f6f9f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#16201b;--sf:#1f2c25;--tx:#e6efe9;--mu:#9fb2a7;--ln:#34463c;--g:#5cbf84;--gd:#8fe0b0;--hot:#ff7457;--warn:#f2b45a;--blue:#6fb2e0}}
+:root[data-theme="dark"]{--bg:#16201b;--sf:#1f2c25;--tx:#e6efe9;--mu:#9fb2a7;--ln:#34463c;--g:#5cbf84;--gd:#8fe0b0;--hot:#ff7457;--warn:#f2b45a;--blue:#6fb2e0}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 "Trebuchet MS",Verdana,sans-serif}
+main{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+h1{font:700 1.9rem/1.15 Georgia,serif;color:var(--gd);margin:0 0 6px}
+h2{font:700 1.2rem Georgia,serif;margin:0 0 10px}
+p.lead{color:var(--mu);margin:0 0 18px;max-width:62ch}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+nav button{border:1px solid var(--ln);background:var(--sf);color:var(--tx);padding:9px 14px;border-radius:8px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{background:var(--g);color:#fff;border-color:var(--g)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+section{background:var(--sf);border:1px solid var(--ln);border-radius:10px;padding:18px}
+section[hidden]{display:none}
+label{display:block;font-weight:700;margin:12px 0 4px;font-size:.92rem}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--ln);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.chk label{display:inline-flex;gap:6px;align-items:center;font-weight:400;margin:4px 14px 4px 0}
+.chk input{width:auto}
+.btn{background:var(--g);color:#fff;border:0;padding:10px 16px;border-radius:8px;font:inherit;font-weight:700;cursor:pointer;margin:14px 8px 0 0}
+.btn.alt{background:transparent;color:var(--tx);border:1px solid var(--ln)}
+.msg{color:var(--gd);font-weight:700;margin-top:10px;min-height:1.4em}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:480px;font-size:.92rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--ln)}
+svg{width:100%;height:auto;background:var(--bg);border:1px solid var(--ln);border-radius:8px;cursor:crosshair}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:.8rem;font-weight:700;color:#fff}
+.note{color:var(--mu);font-size:.85rem;margin-top:10px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>ArboSalva</h1>
+<p class="lead">Registre locais de Salvador com calor, poluição e falta de sombra e cruze com queixas respiratórias da comunidade. Protótipo do Grupo M – Questões Ambientais na Sociedade.</p>
+<nav role="tablist" id="tabs">
+<button role="tab" aria-selected="true" data-t="zona">Registrar zona crítica</button>
+<button role="tab" aria-selected="false" data-t="quest">Questionário de saúde</button>
+<button role="tab" aria-selected="false" data-t="mapa">Mapa e ranking</button>
+<button role="tab" aria-selected="false" data-t="dados">Dados</button>
+</nav>
+
+<section id="p-zona">
+<h2>Registrar zona crítica</h2>
+<label for="z-bairro">Bairro</label><input id="z-bairro" placeholder="Ex.: Federação">
+<label for="z-rua">Rua ou ponto de referência</label><input id="z-rua">
+<label>O que você percebe no local?</label>
+<div class="chk" id="z-prob">
+<label><input type="checkbox" value="calor">Calor intenso</label>
+<label><input type="checkbox" value="poluicao">Poluição de veículos</label>
+<label><input type="checkbox" value="sombra">Sem sombra</label>
+<label><input type="checkbox" value="poeira">Poeira</label>
+</div>
+<label for="z-grav">Gravidade</label>
+<select id="z-grav"><option value="1">Leve</option><option value="2" selected>Moderada</option><option value="3">Grave</option></select>
+<div class="row">
+<div><label for="z-lat">Latitude</label><input id="z-lat" inputmode="decimal" placeholder="-12.9980"></div>
+<div><label for="z-lng">Longitude</label><input id="z-lng" inputmode="decimal" placeholder="-38.5080"></div>
+</div>
+<button class="btn alt" id="geo" type="button">Usar minha localização</button>
+<label for="z-obs">Observação (opcional)</label><textarea id="z-obs" rows="2"></textarea>
+<button class="btn" id="z-save" type="button">Salvar zona</button>
+<div class="msg" id="z-msg" role="status"></div>
+</section>
+
+<section id="p-quest" hidden>
+<h2>Questionário de saúde respiratória</h2>
+<p class="note">Anônimo. Não pergunte nome, CPF ou endereço completo.</p>
+<label for="q-bairro">Bairro onde mora</label><input id="q-bairro">
+<div class="row">
+<div><label for="q-idade">Faixa etária</label><select id="q-idade"><option>Até 12</option><option>13–17</option><option selected>18–39</option><option>40–59</option><option>60+</option></select></div>
+<div><label for="q-diag">Diagnóstico respiratório</label><select id="q-diag"><option>Nenhum</option><option>Asma</option><option>Bronquite</option><option>DPOC</option><option>Rinite alérgica</option><option>Outro</option></select></div>
+</div>
+<label>Sintomas nos últimos 30 dias</label>
+<div class="chk" id="q-sint">
+<label><input type="checkbox" value="tosse">Tosse</label>
+<label><input type="checkbox" value="chiado">Chiado</label>
+<label><input type="checkbox" value="dispneia">Falta de ar</label>
+<label><input type="checkbox" value="irritacao">Irritação nos olhos/nariz</label>
+</div>
+<div class="row">
+<div><label for="q-arv">Há árvores na sua rua?</label><select id="q-arv"><option>Muitas</option><option>Poucas</option><option selected>Nenhuma</option></select></div>
+<div><label for="q-rua">Horas por dia na rua</label><select id="q-rua"><option>Menos de 1</option><option selected>1 a 3</option><option>Mais de 3</option></select></div>
+</div>
+<button class="btn" id="q-save" type="button">Enviar respostas</button>
+<div class="msg" id="q-msg" role="status"></div>
+</section>
+
+<section id="p-mapa" hidden>
+<h2>Mapa de zonas críticas</h2>
+<svg id="map" viewBox="0 0 400 300" role="img" aria-label="Mapa esquemático de Salvador com zonas críticas registradas"></svg>
+<p class="note">Contorno aproximado de Salvador (desenhado à mão, sem ruas). O fundo colorido é a temperatura estimada, interpolada entre 6 pontos de previsão do tempo de 15/10/2026 (tempo real não atualiza sozinho). Os círculos são zonas registradas, com cor e tamanho pela gravidade.</p>
+<h2 style="margin-top:18px">Ranking por bairro</h2>
+<div class="scroll"><table id="rank"></table></div>
+<div class="msg" id="r-msg"></div>
+</section>
+
+<section id="p-dados" hidden>
+<h2>Dados coletados</h2>
+<p class="note">Os dados ficam só neste navegador. Para análise do grupo, copie o CSV abaixo e cole em uma planilha.</p>
+<button class="btn" id="d-demo" type="button">Carregar dados de exemplo (fictícios)</button>
+<button class="btn alt" id="d-csv" type="button">Gerar CSV</button>
+<button class="btn alt" id="d-clear" type="button">Apagar tudo</button>
+<label for="d-out">CSV</label><textarea id="d-out" rows="9" readonly></textarea>
+</section>
+</main>
+<script>
+var KEY="arbosalva_v1",DB={zonas:[],quest:[]},$=function(i){return document.getElementById(i)};
+function load(){try{var r=localStorage.getItem(KEY);if(r)DB=JSON.parse(r)}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+function checks(id){return Array.prototype.map.call($(id).querySelectorAll("input:checked"),function(i){return i.value})}
+function norm(s){return (s||"").trim().toLowerCase()}
+function show(t){["zona","quest","mapa","dados"].forEach(function(k){$("p-"+k).hidden=k!==t});
+Array.prototype.forEach.call($("tabs").children,function(b){b.setAttribute("aria-selected",b.dataset.t===t)});
+if(t==="mapa")draw()}
+$("tabs").addEventListener("click",function(e){if(e.target.dataset.t)show(e.target.dataset.t)});
+$("geo").onclick=function(){if(!navigator.geolocation){$("z-msg").textContent="Seu navegador não permite localização. Digite as coordenadas.";return}
+navigator.geolocation.getCurrentPosition(function(p){$("z-lat").value=p.coords.latitude.toFixed(5);$("z-lng").value=p.coords.longitude.toFixed(5);$("z-msg").textContent="Localização preenchida."},
+function(){$("z-msg").textContent="Não foi possível obter a localização. Digite as coordenadas."})};
+$("z-save").onclick=function(){var lat=parseFloat($("z-lat").value.replace(",",".")),lng=parseFloat($("z-lng").value.replace(",","."));
+if(!$("z-bairro").value.trim()||isNaN(lat)||isNaN(lng)||checks("z-prob").length===0){$("z-msg").textContent="Informe bairro, localização e ao menos um problema.";return}
+DB.zonas.push({b:$("z-bairro").value.trim(),r:$("z-rua").value.trim(),p:checks("z-prob"),g:+$("z-grav").value,lat:lat,lng:lng,o:$("z-obs").value.trim(),t:new Date().toISOString()});
+save();$("z-msg").textContent="Zona salva. Obrigado por contribuir!";$("z-rua").value="";$("z-obs").value=""};
+$("q-save").onclick=function(){if(!$("q-bairro").value.trim()){$("q-msg").textContent="Informe o bairro.";return}
+DB.quest.push({b:$("q-bairro").value.trim(),i:$("q-idade").value,d:$("q-diag").value,s:checks("q-sint"),a:$("q-arv").value,h:$("q-rua").value,t:new Date().toISOString()});
+save();$("q-msg").textContent="Respostas enviadas. Obrigado!";$("q-sint").querySelectorAll("input").forEach(function(c){c.checked=false})};
+var BB={la0:-13.02,la1:-12.78,ln0:-38.62,ln1:-38.36};
+function col(g){return g>=3?"var(--hot)":g==2?"var(--warn)":"var(--g)"}
+function stats(){var m={};DB.zonas.forEach(function(z){var k=norm(z.b),o=m[k]||(m[k]={n:z.b,z:0,g:0,q:0,c:0,la:0,ln:0});o.z++;o.g+=z.g;o.la+=z.lat;o.ln+=z.lng});
+DB.quest.forEach(function(q){var k=norm(q.b),o=m[k]||(m[k]={n:q.b,z:0,g:0,q:0,c:0,la:0,ln:0});o.q++;if(q.s.length>0||q.d!=="Nenhum")o.c++});
+return Object.keys(m).map(function(k){var o=m[k];o.idx=o.g+o.c*2;return o}).sort(function(a,b){return b.idx-a.idx})}
+var POLY=[[-13.012,-38.535],[-13.004,-38.512],[-13.0,-38.49],[-13.005,-38.47],[-12.997,-38.455],[-12.985,-38.43],[-12.975,-38.415],[-12.96,-38.395],[-12.955,-38.37],[-12.945,-38.34],[-12.93,-38.32],[-12.9,-38.325],[-12.88,-38.36],[-12.86,-38.4],[-12.84,-38.43],[-12.83,-38.45],[-12.845,-38.48],[-12.875,-38.485],[-12.9,-38.49],[-12.93,-38.5],[-12.95,-38.508],[-12.975,-38.515],[-12.99,-38.53]];
+var ST=[[-12.9714,-38.5124,28.1,"Comércio"],[-13.0105,-38.5325,28.1,"Barra"],[-12.9482,-38.4807,28.1,"Liberdade"],[-12.954,-38.356,27.6,"Itapuã"],[-12.887,-38.41,29.6,"Cajazeiras"],[-12.865,-38.465,29.2,"Paripe"]];
+var TMIN=27.5,TMAX=30;
+function X(l){return (l-BB.ln0)/(BB.ln1-BB.ln0)*400}function Y(l){return (BB.la1-l)/(BB.la1-BB.la0)*300}
+function tAt(la,ln){var a=0,b=0;ST.forEach(function(t){var d=Math.pow(la-t[0],2)+Math.pow(ln-t[1],2)+1e-6;a+=t[2]/d;b+=1/d});return a/b}
+function hc(t){var f=Math.max(0,Math.min(1,(t-TMIN)/(TMAX-TMIN)));return "hsl("+(58-f*55)+",85%,"+(55-f*8)+"%)"}
+function base(){var pts=POLY.map(function(q){return X(q[1]).toFixed(1)+","+Y(q[0]).toFixed(1)}).join(" ");
+var g='<defs><clipPath id="cp"><polygon points="'+pts+'"/></clipPath></defs><rect width="400" height="300" fill="var(--blue)" fill-opacity=".12"/><g clip-path="url(#cp)">';
+for(var x=0;x<400;x+=8)for(var y=0;y<300;y+=8){g+='<rect x="'+x+'" y="'+y+'" width="8.5" height="8.5" fill="'+hc(tAt(BB.la1-(y+4)/300*(BB.la1-BB.la0),BB.ln0+(x+4)/400*(BB.ln1-BB.ln0)))+'" fill-opacity=".7"/>'}
+g+='</g><polygon points="'+pts+'" fill="none" stroke="var(--tx)" stroke-width="1.5"/>';
+ST.forEach(function(t){var x=X(t[1]),y=Y(t[0]);g+='<circle cx="'+x+'" cy="'+y+'" r="2.5" fill="var(--tx)"/><text x="'+(x+5)+'" y="'+(y-4)+'" font-size="9" fill="var(--tx)">'+t[3]+' '+t[2]+'°</text>'});
+g+='<text x="8" y="272" font-size="9" fill="var(--tx)">Baía de Todos os Santos</text><text x="300" y="30" font-size="9" fill="var(--tx)">Oceano Atlântico</text>';
+for(var i=0;i<=20;i++)g+='<rect x="'+(8+i*4)+'" y="284" width="4" height="7" fill="'+hc(TMIN+i/20*(TMAX-TMIN))+'"/>';
+return g+'<text x="92" y="291" font-size="9" fill="var(--tx)">'+TMIN+'° a '+TMAX+'° (estimado)</text>'}
+function draw(){var s=base();
+for(var i=1;i<4;i++)s+='<line x1="'+i*100+'" y1="0" x2="'+i*100+'" y2="300" stroke="var(--ln)" stroke-dasharray="3 5"/><line x1="0" y1="'+i*75+'" x2="400" y2="'+i*75+'" stroke="var(--ln)" stroke-dasharray="3 5"/>';
+DB.zonas.forEach(function(z){var x=(z.lng-BB.ln0)/(BB.ln1-BB.ln0)*400,y=(BB.la1-z.lat)/(BB.la1-BB.la0)*300;
+if(x<0||x>400||y<0||y>300)return;s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(5+z.g*3)+'" fill="'+col(z.g)+'" fill-opacity=".55" stroke="'+col(z.g)+'"><title>'+z.b.replace(/</g,"")+'</title></circle>'});
+$("map").innerHTML=s;
+var r=stats(),h='<tr><th>Bairro</th><th>Zonas</th><th>Gravidade</th><th>Questionários</th><th>Com queixa</th><th>Índice</th><th>Temp. est.</th></tr>';
+if(!r.length)h+='<tr><td colspan="7">Nenhum registro ainda. Registre uma zona ou carregue os dados de exemplo.</td></tr>';
+r.forEach(function(o){var b=o.idx>=8?"var(--hot)":o.idx>=4?"var(--warn)":"var(--g)";
+h+='<tr><td>'+o.n.replace(/</g,"")+'</td><td>'+o.z+'</td><td>'+o.g+'</td><td>'+o.q+'</td><td>'+o.c+'</td><td><span class="pill" style="background:'+b+'">'+o.idx+'</span></td><td>'+(o.z?tAt(o.la/o.z,o.ln/o.z).toFixed(1)+' °C':'–')+'</td></tr>'});
+$("rank").innerHTML=h;
+var risk=r.filter(function(o){return o.idx>=8}).length;
+$("r-msg").textContent="Bairros em risco alto: "+risk+" (meta do projeto: pelo menos 5)."}
+$("d-demo").onclick=function(){var B=[["Federação",-13.0036,-38.5058],["Liberdade",-12.9482,-38.4807],["Pituba",-12.9930,-38.4540],["Cajazeiras",-12.8870,-38.4100],["Sussuarana",-12.9390,-38.4580],["Pau da Lima",-12.9360,-38.4380]];
+B.forEach(function(b,i){for(var k=0;k<3;k++){DB.zonas.push({b:b[0],r:"Ponto "+(k+1),p:["calor","sombra"],g:1+((i+k)%3),lat:b[1]+(k-1)*.004,lng:b[2]+(k-1)*.004,o:"exemplo",t:new Date().toISOString()});
+DB.quest.push({b:b[0],i:"18–39",d:(i+k)%2?"Asma":"Nenhum",s:(i+k)%3?["tosse"]:[],a:"Nenhuma",h:"1 a 3",t:new Date().toISOString()})}});
+save();$("d-out").value="Dados de exemplo carregados (fictícios). Veja a aba Mapa e ranking."};
+$("d-csv").onclick=function(){var L=["tipo,bairro,detalhe,gravidade_ou_diagnostico,lat,lng,data"];
+DB.zonas.forEach(function(z){L.push(["zona",z.b,z.p.join("|"),z.g,z.lat,z.lng,z.t].map(q).join(","))});
+DB.quest.forEach(function(x){L.push(["questionario",x.b,x.s.join("|"),x.d,"","",x.t].map(q).join(","))});
+$("d-out").value=L.join("\n");function q(v){return '"'+String(v).replace(/"/g,'""')+'"'}};
+$("d-clear").onclick=function(){if(confirm("Apagar todos os registros deste navegador?")){DB={zonas:[],quest:[]};save();$("d-out").value=""}};
+load();
+</script>
+</body>
+</html>
